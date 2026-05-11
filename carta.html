@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Te tengo miedo</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=EB+Garamond:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    min-height: 100vh;
+    font-family: 'EB Garamond', Georgia, serif;
+    font-size: clamp(22px, 5.5vw, 28px);
+    line-height: 2.1;
+    color: #f5f0e8;
+    background-color: #1a1520;
+    overflow-x: hidden;
+  }
+
+  .bg-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background: #1a1520;
+  }
+
+  .grain {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    opacity: 0.06;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    background-size: 200px 200px;
+  }
+
+  .wrapper {
+    position: relative;
+    z-index: 2;
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 14vh 1.4rem 28vh;
+  }
+
+  .title-block {
+    margin-bottom: 8vh;
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 1.2s ease, transform 1.2s ease;
+  }
+  .title-block.visible { opacity: 1; transform: translateY(0); }
+
+  h1 {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight: 300;
+    font-style: italic;
+    font-size: clamp(3.2rem, 13vw, 5rem);
+    letter-spacing: 0.02em;
+    line-height: 1.1;
+    color: #f5f0e8;
+    margin-bottom: 2rem;
+  }
+
+  .divider { width: 48px; height: 1px; background: currentColor; opacity: 0.4; }
+
+  .paragraph-block {
+    margin-bottom: 18vh;
+    opacity: 0;
+    transform: translateY(40px);
+    transition: opacity 1.4s ease, transform 1.4s ease;
+  }
+  .paragraph-block.visible { opacity: 1; transform: translateY(0); }
+
+  p {
+    color: rgba(245, 240, 232, 0.88);
+    text-align: justify;
+    hyphens: auto;
+  }
+
+  .progress-bar {
+    position: fixed;
+    top: 0; left: 0;
+    height: 2px;
+    background: rgba(245,240,232,0.25);
+    z-index: 20;
+    width: 0%;
+  }
+
+  .scroll-hint {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    opacity: 1;
+    transition: opacity 1s ease;
+    pointer-events: none;
+  }
+  .scroll-hint.hidden { opacity: 0; }
+  .scroll-hint span {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-style: italic;
+    font-size: 12px;
+    letter-spacing: 0.15em;
+    color: rgba(245,240,232,0.4);
+    text-transform: uppercase;
+  }
+  .scroll-arrow {
+    width: 1px; height: 32px;
+    background: linear-gradient(to bottom, rgba(245,240,232,0.4), transparent);
+    animation: pulse-down 2s ease-in-out infinite;
+  }
+  @keyframes pulse-down {
+    0%, 100% { transform: scaleY(1); opacity: 0.6; }
+    50%       { transform: scaleY(0.6); opacity: 0.2; }
+  }
+
+  /* CONFIG BUTTON */
+  .color-config {
+    position: fixed;
+    top: 1.2rem; right: 1.2rem;
+    z-index: 30;
+  }
+  .config-btn {
+    background: rgba(245,240,232,0.08);
+    border: 1px solid rgba(245,240,232,0.18);
+    border-radius: 6px;
+    color: rgba(245,240,232,0.6);
+    font-size: 11px;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-style: italic;
+    letter-spacing: 0.1em;
+    padding: 7px 14px;
+    cursor: pointer;
+    transition: background 0.3s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .config-btn:hover { background: rgba(245,240,232,0.14); }
+
+  /* FULLSCREEN PANEL */
+  .config-panel {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(10,8,16,0.97);
+    z-index: 40;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 1.6rem 1.2rem 5rem;
+  }
+  .config-panel.open { display: block; }
+
+  .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.8rem;
+  }
+  .panel-title {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: clamp(1.3rem, 5vw, 1.7rem);
+    color: rgba(245,240,232,0.85);
+  }
+  .close-btn {
+    background: none;
+    border: 1px solid rgba(245,240,232,0.2);
+    border-radius: 6px;
+    color: rgba(245,240,232,0.5);
+    font-size: 18px;
+    padding: 5px 12px;
+    cursor: pointer;
+    line-height: 1;
+    -webkit-tap-highlight-color: transparent;
+    flex-shrink: 0;
+  }
+
+  /* EMOTION SECTION */
+  .emotion-section {
+    border: 1px solid rgba(245,240,232,0.1);
+    border-radius: 12px;
+    padding: 1.2rem;
+    margin-bottom: 1.2rem;
+  }
+  .emotion-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    gap: 12px;
+  }
+  .emotion-name {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-style: italic;
+    font-size: 1.1rem;
+    color: rgba(245,240,232,0.75);
+    letter-spacing: 0.04em;
+    flex: 1;
+  }
+
+  /* Color swatch — circle with hidden color input on top */
+  .color-swatch {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    border: 2px solid rgba(245,240,232,0.2);
+    position: relative;
+    flex-shrink: 0;
+    overflow: hidden;
+    cursor: pointer;
+  }
+  .color-preview {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .color-swatch input[type="color"] {
+    position: absolute;
+    inset: 0;
+    width: 100%; height: 100%;
+    border: none; padding: 0; margin: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  .keywords-label {
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(245,240,232,0.28);
+    margin-bottom: 0.5rem;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+  }
+
+  .tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 0.7rem;
+    min-height: 28px;
+  }
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(245,240,232,0.07);
+    border: 1px solid rgba(245,240,232,0.13);
+    border-radius: 20px;
+    padding: 3px 10px 3px 11px;
+    font-size: 14px;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-style: italic;
+    color: rgba(245,240,232,0.72);
+  }
+  .tag-remove {
+    cursor: pointer;
+    opacity: 0.4;
+    font-style: normal;
+    font-size: 16px;
+    line-height: 1;
+    padding: 0 2px;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .tag-remove:hover { opacity: 0.9; }
+
+  .keyword-input-row {
+    display: flex;
+    gap: 6px;
+  }
+  .keyword-input {
+    flex: 1;
+    background: rgba(245,240,232,0.05);
+    border: 1px solid rgba(245,240,232,0.14);
+    border-radius: 6px;
+    color: #f5f0e8;
+    font-family: 'EB Garamond', Georgia, serif;
+    font-size: 16px;
+    padding: 7px 10px;
+    outline: none;
+    min-width: 0;
+  }
+  .keyword-input::placeholder { color: rgba(245,240,232,0.22); }
+  .keyword-input:focus { border-color: rgba(245,240,232,0.32); }
+
+  .add-btn {
+    background: rgba(245,240,232,0.08);
+    border: 1px solid rgba(245,240,232,0.18);
+    border-radius: 6px;
+    color: rgba(245,240,232,0.65);
+    font-size: 22px;
+    padding: 0 14px;
+    cursor: pointer;
+    line-height: 1;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .add-btn:active { background: rgba(245,240,232,0.16); }
+
+  .panel-footer {
+    margin-top: 0.6rem;
+    border-top: 1px solid rgba(245,240,232,0.07);
+    padding-top: 1.2rem;
+  }
+  .footer-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .footer-label {
+    font-size: 12px;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-style: italic;
+    color: rgba(245,240,232,0.35);
+    white-space: nowrap;
+  }
+  input[type="range"] {
+    flex: 1;
+    accent-color: rgba(245,240,232,0.5);
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-layer" id="bgLayer"></div>
+<div class="grain"></div>
+<div class="progress-bar" id="progressBar"></div>
+
+<!-- 
+<div class="color-config">
+  <button class="config-btn" onclick="openPanel()">✦ colores</button>
+  <div class="config-panel" id="configPanel">
+    <div class="panel-header">
+      <span class="panel-title">así siento yo esta carta</span>
+      <button class="close-btn" onclick="closePanel()">✕</button>
+    </div>
+    <div id="emotionSections"></div>
+    <div class="panel-footer">
+      <div class="footer-row">
+        <span class="footer-label">velocidad de transición</span>
+        <input type="range" id="transitionSpeed" min="2" max="60" value="30" oninput="updateTransition()">
+      </div>
+    </div>
+  </div>
+</div> -->
+
+
+<div class="scroll-hint" id="scrollHint">
+  <span></span>
+  <div class="scroll-arrow"></div>
+</div>
+
+<div class="wrapper">
+  <div class="title-block" id="titleBlock">
+    <h1>Te tengo<br>miedo</h1>
+    <div class="divider"></div>
+  </div>
+
+  <div class="paragraph-block">
+    <p>Desde el día que llegaste a mi vida, desde que empezamos a hablar me di cuenta que tenía mucho camino por delante para conocerte de verdad, y así fue, puse atención en cada detalle de tu vida, en cada detalle de tu voz, de tu cuerpo y de tu esencia, en cada historia, en cada momento y no solo te conocí, me enamoré. Pero realmente me enamoré, no hay amor mas grande que haya sentido yo, no hay persona por la cual me haya nacido mas entregarme, con la cuál haya deseado mas tocar, sentir, disfrutar y vivir, no hay historia en mi pasado donde la protagonista haya traído tanto impacto a mi historia, eres diferente, eres especial y <em>te tengo miedo</em>.</p>
+  </div>
+
+  <div class="paragraph-block">
+    <p>Miedo porque por ti soy débil, soy tonto y complaciente, por ti daría lo que fuera y amaría con toda mi sangre, miedo porque no se que hay detrás de ti ni de esa otra cara capaz de herir, no se que hay detrás de tus ojos, como me ven, como me sienten, como me perciben, no entiendo que te hago sentir, Temo desde que supe que en un principio no te hubiera importado el perderme, temo aun más desde que ya al tenerme podías mentirme y en mi ausencia hacer cosas que me dolerían si las descubría, y esto porque te creo, veo en ti una figura casi angelical llena de amor, te percibo como la luz de mis días, como el color en las flores y la deliciosa paleta de olores que disfruto sentir.</p>
+  </div>
+
+  <div class="paragraph-block">
+    <p>Te veo a ti como ese tesoro que tenía lejos, que desconocía y que uno encuentra un día cualquiera, como ese bello caracol que pones en tu mano y sientes como alegra tu día lluvioso con su belleza y la curiosidad que te genera sin esperarte que una criatura así tenga dientes y te pueda morder. Como ese día que uno sale a un bello y desconocido sendero, uno de esos perfectos, sin esperarse que estas apunto de tropezarse con una piedra que te lastimara, no de gravedad, no de muerte, no para aventar el caracol por los aires ni para regresar a casa cuando se está disfrutando tanto del sendero.</p>
+  </div>
+
+  <div class="paragraph-block">
+    <p>Porque el caracol es hermoso y está vivo, te enseña que no estás solo en medio de la lluvia y que mojarte los calcetines para tomarlo vale la pena, porque las vistas, el aire y la naturaleza del sendero te hacen levantarte y caminar para seguir disfrutando y descubriendo cada detalle de un silencioso camino lleno de paz, aunque sangres de la rodilla, aunque con cada paso te alejes de casa, te temo porque te amo, porque he abierto mi pecho y te he entregado mi corazón desde el primer minuto.</p>
+  </div>
+
+  <div class="paragraph-block">
+    <p>Porque yo encontré en esa noche no solo placer, sino el cuerpo que quiero consumir siempre, porque yo encontré en esas vacaciones a la mujer que esperaría sin importar la distancia, el tiempo ni la incertidumbre, porque yo encontré en esa respuesta negativa a mi declaración de amor una oportunidad de realmente ser elegido con criterio, mas que por el momento, porque yo encontré en ti una forma diferente de amar y de verdaderamente confiar en una fe ciega.</p>
+  </div>
+
+  <div class="paragraph-block">
+    <p>Porque así camino, de tu mano, sin voltear hacia las cosas que puedas ocultarme bajo la alfombra, las palabras dichas sin ser sentidas o los momentos en los que yo creí una cosa y era otra, durmiendo a tu lado desde el principio pensando que estábamos en la misma página aunque no fuera el caso, siendo totalmente vulnerable a tus armas, armas con las que me puedes matar, armas con las que en algún momento cortaste mi piel, perforaste mis entrañas sin decírmelo y para cuando me enteré de que estaba sangrando tu ya habías limpiado, suturado, y besado las heridas.</p>
+  </div>
+
+  <div class="paragraph-block">
+    <p>Lo suficiente para que lo único que quede sea el dolor que llega al darme cuenta, aunque mi cuerpo y mi mente sienta que el daño ya se ha reparado. No entiendo a ningún humano, no te entiendo a ti, eres la persona con la que mas tiempo paso y te conozco, se que hacer y que no, se como hacerlo y como no, se que me dirás y que no. pero no puedo entenderte, no puedo entrar a tu cabeza y verme con tus ojos y eso me da miedo.</p>
+  </div>
+
+  <div class="paragraph-block">
+    <p>Puedo escuchar la música en la que me encuentras, los besos que me das y el sexo que disfrutas conmigo, puedo encontrar que disfrutas de mi, que sientes algo muy grande por mi, que muy seguramente hayas dejado de mentir en lo que sientes por mi pero no entiendo, me siento chiquito, me siento impotente, siento que no tengo el suficiente dinero, ni cuento los mejores chistes, que no tengo el mejor cuerpo o la conversación mas interesante, no encuentro en mi el valor que personalmente yo veo en ti.</p>
+  </div>
+
+  <div class="paragraph-block">
+    <p>Entonces temo ser un capricho, un gusto y un amor el cual te hace bien pero nunca significará tanto como tu pasado y te quedes esperando que en un futuro yo cumpla la expectativa o decidas buscar en alguien más, no me siento suficiente, no siento que el darte el helado mas grande, que el regalarte las bolitas de mi bebida o el consentirte siempre sea suficiente, no se que soy yo en comparativa con lo que has tenido y te han hecho sentir o con lo que quieres tener.</p>
+  </div>
+
+  <div class="paragraph-block">
+    <p>Solo me queda creer que mi amor penetra tu corazón como aunque sea una decima parte de como el tuyo penetra el mío, de como lo destruye y me roba el pecho con cada beso, el como el olor de tu cuerpo cuando lo inhalo toma todo de mi y cuando lo exhalo me deja vacío, de como tu mirada, tus ojos y tu voz derriten mis cadenas y ciegan mi miedo a amarte.</p>
+  </div>
+
+  <div class="paragraph-block">
+    <p>Solo me queda amarte, esperar a ver la señal que mi decadente e inseguro cerebro finalmente tome y pueda relajarse y dejar de temer, notar que la perfección se encuentra en la imperfección, que los errores enseñan y que las mentiras a veces son piadosas, lo suficientemente piadosas para que esas heridas que no note en el momento no hubieran sido un disparo directo a mi sien, lo suficientemente piadosas para permitirme amarte y no morir vacío porque hoy soy yo contigo.</p>
+  </div>
+
+  <div class="paragraph-block">
+    <p>Dejaste que naciera ese yo, pudiste haberlo asesinado y dejarme solo como esa masa de carne que llevaba tiempo existiendo como solo eso. Por eso te temo, porque ahora <em>vivo</em>, ahora el amor, el miedo, el dolor, la felicidad y la tristeza que me hagas sentir son muestras de que finalmente y después de cosas que en un pasado me mataron puedo ahora permitirme vivir.</p>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════
+   EMOCIONES Y PALABRAS CLAVE
+   Edita desde el panel, o directamente aquí.
+   ═══════════════════════════════════════════ */
+const emotions = [
+  {
+    id: 'miedo',
+    name: 'Miedo / Temor',
+    color: '#6a1fc2',
+    keywords: ['miedo','temo','temer','temor','debil','vulnerable','heridas','sangrando','matar','dolor','mentirme','perderme','herir','armas','ocultar','impotente','chiquito','capricho','inseguro','decadente','alfombra','incertidumbre','temo','lastimara','sangres']
+  },
+  {
+    id: 'amor',
+    name: 'Amor / Pasión',
+    color: '#c21f3a',
+    keywords: ['amor','amo','amarte','enamoro','amar','corazon','beso','besos','pecho','sangre','entregarme','tocar','sentir','disfrutar','placer','cuerpo','consumir','mirada','ojos','voz','olor','inhalo','exhalo','cadenas','bello','hermoso','enamore','enamore']
+  },
+  {
+    id: 'vida',
+    name: 'Vida / Esperanza',
+    color: '#b87000',
+    keywords: ['vivo','vivir','vida','felicidad','luz','color','flores','naciera','nacido','alegra','paz','levantarte','sendero','descubriendo','tesoro','encuentra','encontre','permite','imperfeccion','belleza','caracol','lluvia','vistas','aire','naturaleza','perfeccion','naci']
+  }
+];
+
+const BASE = [26, 21, 32];
+
+/* ── Color math ── */
+function hexToRgb(hex) {
+  hex = hex.replace('#','');
+  if (hex.length === 3) hex = hex.split('').map(c=>c+c).join('');
+  return [parseInt(hex.slice(0,2),16), parseInt(hex.slice(2,4),16), parseInt(hex.slice(4,6),16)];
+}
+function rgbToHex(r,g,b) {
+  return '#' + [r,g,b].map(v => Math.round(Math.max(0,Math.min(255,v))).toString(16).padStart(2,'0')).join('');
+}
+function norm(s) {
+  return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+}
+
+/* ── Smooth lerp animation ── */
+let cur = [...BASE];
+let tgt = [...BASE];
+let speed = 0.018;
+let raf = null;
+
+function animateBg() {
+  let done = true;
+  cur = cur.map((c,i) => {
+    const d = tgt[i] - c;
+    if (Math.abs(d) < 0.4) return tgt[i];
+    done = false;
+    return c + d * speed;
+  });
+  applyColor();
+  raf = done ? null : requestAnimationFrame(animateBg);
+}
+
+function applyColor() {
+  const [r,g,b] = cur.map(Math.round);
+  const dark = rgbToHex(r*0.42, g*0.42, b*0.42);
+  document.getElementById('bgLayer').style.background =
+    `radial-gradient(ellipse at 30% 40%, ${rgbToHex(r,g,b)}, ${dark} 75%)`;
+}
+
+function setTarget(rgb) {
+  tgt = rgb;
+  if (!raf) raf = requestAnimationFrame(animateBg);
+}
+
+/* ── Score visible words ── */
+function getVisibleText() {
+  const vh = window.innerHeight;
+  let t = '';
+  document.querySelectorAll('.paragraph-block').forEach(p => {
+    const r = p.getBoundingClientRect();
+    if (r.bottom > 0 && r.top < vh) t += ' ' + p.innerText;
+  });
+  return norm(t);
+}
+
+function computeTarget() {
+  const text = getVisibleText();
+  const words = text.split(/\W+/);
+
+  let total = 0;
+  const counts = emotions.map(e => {
+    let c = 0;
+    e.keywords.forEach(kw => {
+      const n = norm(kw);
+      words.forEach(w => { if (w === n || w.startsWith(n)) c++; });
+    });
+    total += c;
+    return c;
+  });
+
+  if (total === 0) return BASE;
+
+  let R=0,G=0,B=0;
+  emotions.forEach((e,i) => {
+    if (!counts[i]) return;
+    const w = counts[i]/total;
+    const [r,g,b] = hexToRgb(e.color);
+    R += r*w; G += g*w; B += b*w;
+  });
+  return [R,G,B];
+}
+
+/* ── Scroll ── */
+let ticking = false;
+function onScroll() {
+  if (ticking) return;
+  ticking = true;
+  requestAnimationFrame(() => {
+    const sy = window.scrollY;
+    const dh = document.documentElement.scrollHeight - window.innerHeight;
+    document.getElementById('progressBar').style.width = (dh>0 ? sy/dh*100 : 0)+'%';
+    if (sy > 80) document.getElementById('scrollHint').classList.add('hidden');
+    setTarget(computeTarget());
+    document.querySelectorAll('.paragraph-block').forEach(p => {
+      if (p.getBoundingClientRect().top < window.innerHeight * 0.85) p.classList.add('visible');
+    });
+    ticking = false;
+  });
+}
+window.addEventListener('scroll', onScroll, { passive:true });
+
+/* ── Panel ── */
+function openPanel()  { document.getElementById('configPanel').classList.add('open'); }
+function closePanel() { document.getElementById('configPanel').classList.remove('open'); }
+
+function renderSections() {
+  const container = document.getElementById('emotionSections');
+  container.innerHTML = '';
+  emotions.forEach(e => {
+    const sec = document.createElement('div');
+    sec.className = 'emotion-section';
+    sec.innerHTML = `
+      <div class="emotion-header">
+        <span class="emotion-name">${e.name}</span>
+        <div class="color-swatch">
+          <div class="color-preview" id="preview-${e.id}" style="background:${e.color}"></div>
+          <input type="color" value="${e.color}" oninput="updateEmotionColor('${e.id}',this.value)">
+        </div>
+      </div>
+      <div class="keywords-label">palabras clave</div>
+      <div class="tags-container" id="tags-${e.id}"></div>
+      <div class="keyword-input-row">
+        <input class="keyword-input" type="text" id="input-${e.id}"
+          placeholder="agregar palabra…" autocomplete="off" autocorrect="off" spellcheck="false">
+        <button class="add-btn" onclick="addKeyword('${e.id}')">+</button>
+      </div>
+    `;
+    container.appendChild(sec);
+    renderTags(e.id);
+    sec.querySelector(`#input-${e.id}`).addEventListener('keydown', ev => {
+      if (ev.key === 'Enter') addKeyword(e.id);
+    });
+  });
+}
+
+function renderTags(eid) {
+  const e = emotions.find(x=>x.id===eid);
+  const c = document.getElementById('tags-'+eid);
+  c.innerHTML = '';
+  e.keywords.forEach((kw,i) => {
+    const tag = document.createElement('span');
+    tag.className = 'tag';
+    tag.innerHTML = `${kw}<span class="tag-remove" onclick="removeKeyword('${eid}',${i})">×</span>`;
+    c.appendChild(tag);
+  });
+}
+
+function addKeyword(eid) {
+  const inp = document.getElementById('input-'+eid);
+  const val = norm(inp.value.trim());
+  if (!val) return;
+  const e = emotions.find(x=>x.id===eid);
+  if (!e.keywords.map(norm).includes(val)) { e.keywords.push(val); renderTags(eid); }
+  inp.value = '';
+  inp.focus();
+}
+
+function removeKeyword(eid, idx) {
+  emotions.find(x=>x.id===eid).keywords.splice(idx,1);
+  renderTags(eid);
+}
+
+function updateEmotionColor(eid, color) {
+  emotions.find(x=>x.id===eid).color = color;
+  document.getElementById('preview-'+eid).style.background = color;
+  setTarget(computeTarget());
+}
+
+function updateTransition() {
+  const v = parseInt(document.getElementById('transitionSpeed').value);
+  speed = 0.003 + (62-v)/60*0.055;
+}
+
+/* ── Init ── */
+setTimeout(() => {
+  document.getElementById('titleBlock').classList.add('visible');
+  renderSections();
+  applyColor();
+}, 150);
+</script>
+</body>
+</html>
